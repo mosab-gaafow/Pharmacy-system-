@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for all users
+  name          String   @unique // Make name unique if required
+  email         String   @unique // Email of the user must be unique
+  phone         String   @unique // Phone number must be unique
+  password      String
+  role          Role     // 'DOCTOR', 'PHARMACIST', or 'LAB_DOCTOR'
+  createdAt     DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  prescriptions Prescription[] // Prescriptions created by the doctor
+  healthChecks  HealthCheck[]   // Health checks associated with the user
+}
+
+model Patient {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  ageInYears     Int?     // Optional: Patient's age in years
+  ageInMonths    Float?   // Optional: Patient's age in months
+  sex            Sex      // Patient's gender ('MALE', 'FEMALE')
+  phone          String   // Patient's contact number
+  prescriptions  Prescription[]  // Track their prescription history
+  healthChecks   HealthCheck[]   // Health checks associated with the patient
+  payments       Payment[]       // Added relation to track payments made by the patient
+  createdAt      DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HealthCheck {
+  id             String            @id @default(auto()) @map("_id") @db.ObjectId
+  patient        Patient           @relation(fields: [patientId], references: [id])
+  patientId      String            @db.ObjectId
+  labDoctor      User              @relation(fields: [labDoctorId], references: [id]) // Associated lab doctor
+  labDoctorId    String            @db.ObjectId
+  signs          String[]          // Array to store signs or patient feelings
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  diseases       HealthCheckDisease[] // List of diseases diagnosed during this health check
+}
+
+model Disease {
+  id             String            @id @default(auto()) @map("_id") @db.ObjectId
+  name           String            @unique // Make the name unique to prevent duplicates
+  signsAndEffects String[]          // Signs and effects of the disease
+  healthChecks   HealthCheckDisease[] // List of health checks associated with this disease
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model HealthCheckDisease {
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  healthCheck    HealthCheck @relation(fields: [healthCheckId], references: [id])
+  healthCheckId  String      @db.ObjectId
+  disease        Disease     @relation(fields: [diseaseId], references: [id])
+  diseaseId      String      @db.ObjectId
+}
+
+
+enum PrescriptionStatus {
+  Active
+  Pending
+  Finished
+}
+model Prescription {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  patientId   String   @db.ObjectId
+  doctor      User     @relation(fields: [doctorId], references: [id])
+  doctorId    String   @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  medicines   PrescriptionMedicine[]
+  status      PrescriptionStatus @default(Active)
+  payment     Payment?  @relation(name: "PaymentToPrescription")
+}
+
+enum StatusPaid {
+  Paid
+  Unpaid
+}
+model Payment {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  patient        Patient       @relation(fields: [patientId], references: [id])
+  patientId      String        @db.ObjectId
+  prescription   Prescription  @relation(fields: [prescriptionId], references: [id], name: "PaymentToPrescription")
+  prescriptionId String   @db.ObjectId     @unique // 
+  amount         Float
+  status           StatusPaid       @default(Paid)
+  createdAt      DateTime      @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model PrescriptionMedicine {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  prescription  Prescription @relation(fields: [prescriptionId], references: [id]) // Foreign key to Prescription
+  prescriptionId String     @db.ObjectId
+  medicine      Medicine   @relation(fields: [medicineId], references: [id]) // Foreign key to Medicine
+  medicineId    String     @db.ObjectId
+  dosage        String     // Dosage instructions (e.g., "1 pill twice a day")
+  duration      String     // Duration of the treatment (e.g., "5 days")
+  quantity      Int        // Quantity prescribed
+  instructions  String?    // Any additional instructions
+  createdAt     DateTime   @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Medicine {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          String   // Medicine name (e.g., Paracetamol)
+  description   String?  // Optional description of the medicine
+  category      Category  @relation(fields: [categoryId], references: [id]) // Foreign key to Category
+  categoryId    String   @db.ObjectId
+  types         MedicineType[]  // Types of the medicine (Tablet, Syrup, etc.)
+  stock         Int      // How many units are available in the pharmacy
+  expiration    DateTime // Expiration date of the medicine
+  price         Float    // Price of one unit of this medicine
+  prescriptions PrescriptionMedicine[] // Links to prescription usage
+  createdAt     DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          String   // Name of the category (e.g., "Diabetes Medicines")
+  medicines     Medicine[] // Medicines that belong to this category
+  createdAt     DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  Pharmacist
+  Lab_Doctor // Added for lab doctors who handle health checks
+}
+
+enum Sex {
+  Male
+  Female
+}
+
+enum MedicineType {
+  Tablet
+  Syrup
+  Injection
+  Ointment
+  Capsule
+}
