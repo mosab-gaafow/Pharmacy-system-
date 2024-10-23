@@ -52,6 +52,7 @@ model HealthCheck {
 model Disease {
   id             String            @id @default(auto()) @map("_id") @db.ObjectId
   name           String            @unique // Make the name unique to prevent duplicates
+  description    String?
   signsAndEffects String[]          // Signs and effects of the disease
   healthChecks   HealthCheckDisease[] // List of health checks associated with this disease
   createdAt      DateTime          @default(now())

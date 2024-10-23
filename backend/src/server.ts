@@ -9,6 +9,7 @@ import prescriptionRoutes from './routes/prescriptionRoute.ts';
 import prescriptionMedicineRoutes from './routes/prescMedicineRoutes.ts';
 import paymentsRoutes from './routes/paymentsRoutes.ts';
 import diseaseRoutes from './routes/diseaseRoutes.ts';
+import healthCheckRoutes from './routes/healthCheckRoutes.ts';
 
 const PORT = process.env.PORT || 4000;
 
@@ -33,6 +34,7 @@ app.use('/api/v1/prescriptions', prescriptionRoutes);
 app.use('/api/v1/prescriptionMedicines', prescriptionMedicineRoutes);
 app.use('/api/v1/payments', paymentsRoutes);
 app.use('/api/v1/diseases', diseaseRoutes);
+app.use('/api/v1/healthCheck', healthCheckRoutes);
 
 // Connect to Database
 connectDB();
